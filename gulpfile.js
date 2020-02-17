@@ -15,13 +15,13 @@ const
 
   // Directory settings
   dir = {
-    sassSrc: './assets/sass/style.sass',
+    sassSrc: './assets/sass/*.sass',
     sassWatch: './assets/sass/**/*.sass',
     cssDest: './assets/css/',
-    pugSrc:'./**/*.jade',
-    pugWatch: './**/*.jade',
+    pugSrc:'./pug/*.pug',
+    pugWatch: './pug/**/*.pug',
     pugDest: './',
-    projectSrc:'./index.html',
+    projectSrc:'./',
   },
 
   // CSS settings
@@ -36,7 +36,7 @@ const
     },
   },
 
-  // Jade settings
+  // Pug settings
   pugSettings = {
     src: dir.pugSrc,
     watch: dir.pugWatch,
@@ -116,7 +116,7 @@ function pugCompiler() {
   return gulp.src(pugSettings.src)
     .pipe(pug({
       doctype: 'html',
-      pretty: false,
+      pretty: true,
     }))
     .pipe(gulp.dest(pugSettings.build))
     .pipe(notify({
@@ -138,7 +138,7 @@ function server(done) {
 // Watch task
 function watch(done) {
   gulp.watch(cssSettings.watch, sassCompiler); // Sass changes
-  //gulp.watch(jadeSettings.watch, jadeCompiler); // Jade changes
+  gulp.watch(pugSettings.watch, pugCompiler); // Jade changes
   done();
 }
 
