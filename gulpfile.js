@@ -1,10 +1,11 @@
 const
   gulp = require('gulp'),
   sass = require('gulp-sass'),
-  minifycss = require('gulpuglifycss'),
+  minifycss = require('gulp-uglifycss'),
   autoPrefixer = require('gulp-autoprefixer'),
   mmq = require('gulp-merge-media-queries'),
-  jade = require('gulp-jade'),
+  sourceMaps = require('gulp-sourcemaps'),
+  pug = require('gulp-pug'),
   notify = require('gulp-notify'),
   rename = require('gulp-rename'),
   filter = require('gulp-filter'),
@@ -17,30 +18,30 @@ const
     sassSrc: './assets/sass/style.sass',
     sassWatch: './assets/sass/**/*.sass',
     cssDest: './assets/css/',
-    jadeSrc:'',
-    JadeWatch: '',
-    jadeDest: '',
-    projectSrc:'',
+    pugSrc:'./**/*.jade',
+    pugWatch: './**/*.jade',
+    pugDest: './',
+    projectSrc:'./index.html',
   },
 
   // CSS settings
-  cssOptions = {
+  cssSettings = {
     src: dir.sassSrc,
     watch: dir.sassWatch,
     build: dir.cssDest,
     sassOptions: {
       outputStyle: 'compact',
       precision: 10,
-      errLogToConsole: true
+      errLogToConsole: true,
     },
   },
 
   // Jade settings
-  jadeSettings = {
-    src: dir.jadeSrc,
-    watch: dir.jadeWatch,
-    build: dir.jadeDest,
-    jadeOptions: {
+  pugSettings = {
+    src: dir.pugSrc,
+    watch: dir.pugWatch,
+    build: dir.pugDest,
+    pugOptions: {
       filename: '',
       pretty: true,
       debug: true,
@@ -49,10 +50,10 @@ const
 
   // Server settings
   browserSyncConfig = {
-    proxy: dir.projectSrc,
-    port: 8000,
+    server: true,
+    watch:true,
     open: true,
-    injectChanges: true
+    injectChanges: true,
   },
 
   // Autoprefixer settings
@@ -73,10 +74,23 @@ const
 // Sass compiler
 function sassCompiler() {
   sass.compiler = require('node-sass');
-  return gulp.src(cssOptions.src)
-    .pipe(sass(cssOptions.sassOptions).on('error', sass.logError))
+  return gulp.src(cssSettings.src)
+    .pipe(sourceMaps.init())
+    .pipe(sass(cssSettings.sassOptions).on('error', sass.logError))
+    .pipe(sourceMaps.write({
+      includeContent: false
+    }))
+    .pipe(sourceMaps.init({
+      loadMaps: true
+    }))
     .pipe(autoPrefixer(prefixerOptions))
-    .pipe(gulp.dest(cssOptions.build))
+    .pipe(sourceMaps.write('./'))
+    .pipe(linec())
+    .pipe(gulp.dest(cssSettings.build))
+    .pipe(filter('**/*.css'))
+    .pipe(mmq({
+      log: true
+    }))
     .pipe(browserSync.stream())
     .pipe(rename({
       suffix: '.min'
@@ -84,7 +98,9 @@ function sassCompiler() {
     .pipe(minifycss({
       maxLineLen: 10
     }))
-    .pipe(gulp.dest(cssOptions.build))
+    .pipe(linec())
+    .pipe(gulp.dest(cssSettings.build))
+    .pipe(filter('**/*.css'))
     .pipe(browserSync.reload({
       stream: true
     }))
@@ -92,26 +108,26 @@ function sassCompiler() {
       message: 'Sass compiled! 💯',
       onLast: true
     }));
-
 }
 exports.sassCompiler = gulp.series(sassCompiler);
 
-// Jade compiler
-function jadeCompiler() {
-  return gulp.src(dir.jadeSrc)
-    .pipe(jade({
-      locals:
+// Pug compiler
+function pugCompiler() {
+  return gulp.src(pugSettings.src)
+    .pipe(pug({
+      doctype: 'html',
+      pretty: false,
     }))
-    .pipe(gulp.dest(dir.jsDest))
+    .pipe(gulp.dest(pugSettings.build))
     .pipe(notify({
-      message: 'Jade compiled! 💯',
+      message: 'Pug compiled! 💯',
       onLast: true
     }))
     .pipe(browserSync.reload({
       stream: true
     }));
 }
-exports.jadeCompiler = gulp.series(jadeCompiler);
+exports.pugCompiler = gulp.series(pugCompiler);
 
 // Server task (Private)
 function server(done) {
@@ -121,12 +137,10 @@ function server(done) {
 
 // Watch task
 function watch(done) {
-  gulp.watch(cssOptions.watch, sassCompiler); // CSS changes
-  gulp.watch(dir.phpSrc).on('change', reload); // PHP changes
-  gulp.watch(dir.jsVendorSrc, jsVendor).on('change', jsVendor); // JS Vendor changes
-  gulp.watch(dir.jsCustomSrc, jsCustom).on('change', jsCustom); // JS Custom changes
+  gulp.watch(cssSettings.watch, sassCompiler); // Sass changes
+  //gulp.watch(jadeSettings.watch, jadeCompiler); // Jade changes
   done();
 }
 
 // Default task
-exports.default = gulp.series(exports.sassCompiler, exports.jsVendor, exports.jsCustom, exports.translate, watch, server);
+exports.default = gulp.series(exports.sassCompiler, exports.pugCompiler, watch, server);
